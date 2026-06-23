@@ -7,11 +7,10 @@ def clean_shift(raw_records):
         transformed.append({
             "shift_id": row["shift_id"],
             "shift_name": row["shift_name"].strip() if row["shift_name"] else "Standard Shift",
-            "start_time": row["start_time"],
-            "end_time": row["end_time"],
-            "work_minutes": row["work_minutes"],
-            "late_minutes": row["late_minutes"],
-            "early_minutes": row["early_minutes"]
+            "start_time_1": row["start_time_1"],
+            "end_time_1": row["end_time_1"],
+            "start_time_2": row["start_time_2"],
+            "end_time_2": row["end_time_2"]
         })
     return transformed
 
