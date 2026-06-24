@@ -170,7 +170,7 @@ EXTRACT_DIM_INVOICE_QUERY = """
     WHERE InvoiceNo IS NOT NULL;
 """
 
-EXTRACT_DIM_EXPENSE_QUERY = """
+EXTRACT_DIM_EXPENSE_TYPE_QUERY = """
     SELECT 
         ExpenseTypeID as expense_type_id,
         COALESCE(TRIM(ExpenseType), 'Unknown Title') AS expense_type,
@@ -187,6 +187,7 @@ EXTRACT_FACT_DELIVERY_QUERY = """
         dnd.ItemID as item_id,
         dn.PreparingPersonID as employee_id,
         dnd.VendorID as vendor_id,
+        
         dn.DeliveryNo AS delivery_note,
         dn.RefSaleOrderNo as ref_sale_order_no,
         dnd.Qty as quantity_shipped,
