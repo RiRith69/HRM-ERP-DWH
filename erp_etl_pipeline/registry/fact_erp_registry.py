@@ -13,7 +13,7 @@ ETL_Fact_Registry = [
             ("SELECT employee_id, employee_key FROM dim_employee",              "employee_id",     "employee_key"),
             ("SELECT item_id, item_key FROM dim_item",                          "item_id",         "item_key"),
             ("SELECT vendor_id, vendor_key FROM dim_vendor",                    "vendor_id",       "vendor_key"),
-            ("SELECT delivery_status, delivery_status_key FROM dim_delivery_status", "delivery_status", "delivery_status_key"),
+            ("SELECT delivery_no, delivery_status_key FROM dim_delivery_status",     "delivery_no", "delivery_status_key"),
         ],
         "insert_query": """
             INSERT INTO public.fact_delivery (
@@ -34,6 +34,18 @@ ETL_Fact_Registry = [
     {
         "target_table": "public.fact_sale",
         "extract_query": EXTRACT_FACT_SALE_QUERY,
-        "transform_func": ;
+        "transform_func": transfrom_fact_sale,
+        "dim_lookups": [
+            ("SELECT date_key FROM dim_date", "date_key", "date_key"),
+            ("SELECT customer_id, customer_key FROM dim_customer", "customer_id", "customer_key"),
+            ("SELECT employee_id, employee_key FROM dim_employee", "employee_id", "employee_key"),
+            ("SELECT item_id, item_key FROM dim_item", "item_id", "item_key"),
+            ("SELECT currency_id, currency_key FROM dim_currency", "currency_id", "currency_key"),
+        ],
+        "insert_query": """
+            INSERT INTO public.fact_sale (date_key, customer_key, employee_key, item_key, currency_key, sale_order_no, quantity, unit_price, discount, line_amount)
+            VALUES (:date_key, :customer_key, :employee_key, :item_key, :currency_key, :sale_order_no, :quantity, :unit_price, :discount, :line_amount)
+            ON CONFLICT DO NOTHING;
+        """
     }
 ]

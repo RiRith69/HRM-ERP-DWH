@@ -24,8 +24,8 @@ def transform_fact_delivery(raw_df, dims):
     df = df.merge(dim_vendor_df[['vendor_id', 'vendor_key']], on='vendor_id', how='left').drop(columns=['vendor_id'])
 
     # delivery_status → delivery_status_key
-    dim_status_df = dims['delivery_status']['df']
-    df = df.merge(dim_status_df[['delivery_status', 'delivery_status_key']], on='delivery_status', how='left').drop(columns=['delivery_status'])
+    dim_status_df = dims['delivery_no']['df']
+    df = df.merge(dim_status_df[['delivery_no', 'delivery_status_key']], on='delivery_no', how='left').drop(columns=['delivery_no']) 
 
     fact_columns = [
         'date_key',
@@ -46,3 +46,33 @@ def transform_fact_delivery(raw_df, dims):
 
 def transfrom_fact_sale(raw_df, dims):
     df = raw_df.copy()
+
+    dim_date_df = dims["date_key"]['df']
+    df = df.merge(dim_date_df[['date_key']], on='date_key', how='left')
+
+    dim_customer_df = dims['customer_id']['df']
+    df = df.merge(dim_customer_df[['customer_id', 'customer_key']], on='customer_id', how='left').drop(columns=['customer_id'])
+
+    dim_item_df = dims['item_id']['df']
+    df = df.merge(dim_item_df[['item_id', 'item_key']], on='item_id', how='left').drop(columns=['item_id'])
+
+    dim_employee_df = dims['employee_id']['df']
+    df = df.merge(dim_employee_df[['employee_id', 'employee_key']], on='employee_id',how='left').drop(columns=['employee_id'])
+
+    dim_currency_df = dims['currency_id']['df']
+    df = df.merge(dim_currency_df[['currency_id', 'currency_key']], on='currency_id', how='left').drop(columns=['currency_id'])
+
+    fact_columns = [
+        'date_key',
+        'customer_key',
+        'item_key',
+        'employee_key',
+        'currency_key',
+        'sale_order_no',
+        'quantity',
+        'unit_price',
+        'discount',
+        'line_amount'
+    ]
+    df = df[fact_columns]
+    return df

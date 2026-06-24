@@ -187,8 +187,8 @@ EXTRACT_FACT_DELIVERY_QUERY = """
         dnd.ItemID as item_id,
         dn.PreparingPersonID as employee_id,
         dnd.VendorID as vendor_id,
-        
-        dn.DeliveryNo AS delivery_note,
+        dn.DeliveryNo as delivery_no, 
+        dn.Remark AS delivery_note,
         dn.RefSaleOrderNo as ref_sale_order_no,
         dnd.Qty as quantity_shipped,
         dnd.UnitPrice as unit_price,
@@ -202,11 +202,11 @@ EXTRACT_FACT_DELIVERY_QUERY = """
 EXTRACT_FACT_SALE_QUERY = """
     SELECT 
         YEAR(so.[Date]) * 1000 + MONTH(so.[Date]) * 500 + DAY(so.[Date]) as date_key,
-        so.SaleOrderNo as sale_order_no,
-        sod.SaleOrderNo as sale_order_detail_no,
         so.CustomerID as customer_id,
         sod.ItemID as item_id,
         so.PreparingPersonID as employee_id,
+        sod.CurrencyNo as currency_id,
+        so.SaleOrderNo as sale_order_no,
         sod.Qty as quantity,
         sod.UnitPrice as unit_price,
         sod.Discount as discount,
