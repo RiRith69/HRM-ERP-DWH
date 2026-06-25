@@ -46,8 +46,8 @@ ETL_Registry = [
         "extract_query": EXTRACT_DIM_LOCATION_QUERY,
         "transform_func": trans_location,
         "insert_query": """
-            INSERT INTO public.dim_locations (location_id, location_name, description)
-            VALUES (:location_id, :location_name, :description)
+            INSERT INTO public.dim_locations (location_id, location_name, description, pos_location)
+            VALUES (:location_id, :location_name, :description, :pos_location)
             ON CONFLICT (location_id) DO NOTHING;
         """
     },

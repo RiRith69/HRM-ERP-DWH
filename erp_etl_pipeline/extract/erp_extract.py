@@ -75,7 +75,11 @@ EXTRACT_DIM_LOCATION_QUERY = """
     SELECT 
         CAST(TRIM(LocationID) AS VARCHAR(50)) AS location_id,
         COALESCE(TRIM(LocationName), 'Unknown location') as location_name,
-        coalesce(TRIM(Description), 'No Description Provide') as description
+        coalesce(TRIM(Description), 'No Description Provide') as description,
+        CASE 
+            WHEN [POS Location] = 1 THEN 'TRUE'
+            ELSE 'FALSE'
+        END AS pos_location
     FROM dbo.tblLocation;
 """
 
@@ -220,20 +224,19 @@ EXTRACT_FACT_SALE_QUERY = """
 EXTRACT_FACT_PURCHASE_QUERY = """
     SELECT 
         YEAR(po.[Date]) * 10000 + MONTH(po.[Date]) * 100 + DAY(po.[Date]) AS date_key,
-        po.PurchaseOrderNo AS purchase_order_no,
-        pod.PurchaseOrderNo as purchase_order_detail_no,
-        po.Status AS purchase_status,        
-        po.ApprovalStatus AS approval_status,  
         pod.ItemID AS item_id,
         po.ApprovedByID AS employee_id,            
         po.VendorID AS vendor_id,                  
         po.CustomerID AS customer_id, 
+        pod.CurrencyNo AS currency_id,
+        po.PurchaseOrderNo AS purchase_order_no,
+        po.Status AS purchase_status,        
+        po.ApprovalStatus AS approval_status,  
         ISNULL(pod.Qty, 1) AS quantity,
         ISNULL(pod.UnitCost, 0.00) AS unit_cost,
-        (ISNULL(pod.Qty, 1) * ISNULL(pod.UnitCost, 0.00)) AS gross_purchase_amount,
-        (ISNULL(pod.Qty, 1) * ISNULL(pod.UnitCost, 0.00)) AS net_purchase_amount
+        (pod.Qty * pod.UnitCost) AS total_amount
     FROM tblPurchaseOrder po
-    INNER JOIN tblPurchaseOrderDetails pod ON po.PurchaseOrderNo = pod.PurchaseOrderNo;
+    LEFT JOIN tblPurchaseOrderDetails pod ON po.PurchaseOrderNo = pod.PurchaseOrderNo;
 """
 #Not yet include employeeID
 EXTRACT_Fact_Inventory_QUERY = """
@@ -251,13 +254,13 @@ EXTRACT_Fact_Inventory_QUERY = """
 EXTRACT_FACT_QUOTATION_QUERY = """
     SELECT 
         YEAR(tq.[Date]) * 10000 + MONTH(tq.[Date]) * 100 + DAY(tq.[Date]) AS date_key,
-        YEAR(tq.AuthorizingDate) * 10000 + MONTH(tq.[Date]) * 100 DAY(tq.[Date]) as authorizing_date_key,
+        YEAR(tq.AuthorizingDate) * 10000 + MONTH(tq.AuthorizingDate) * 100 + DAY(tq.AuthorizingDate) as authorizing_date_key,
         tq.CustomerID as customer_id,
         tqd.ItemID as item_id,
-        tq.PreparingPersonID as employee_id,
-        tq.ContactingPersonID as employee_id,
-        tq.AuthorizingPersonID as employee_id,
-        ISNULL(tq.AuthorizingStatus, 'Unknown') AS source_authorizing_status,
+        tq.PreparingPersonID   as preparing_employee_id,
+        tq.ContactingPersonID  as contacting_employee_id,
+        tq.AuthorizingPersonID as authorizing_employee_id,
+        ISNULL(tq.AuthorizingStatus, 'Unknown') AS authorizing_status,
         tq.QuotationNo as quotation_no,
         tqd.QuotationNo as quotation_detail_no,
         tqd.Qty as quantity,
@@ -266,50 +269,206 @@ EXTRACT_FACT_QUOTATION_QUERY = """
         tqd.Qty * tqd.UnitPrice as gross_amount,
         (tqd.Qty * tqd.UnitPrice) - tqd.Discount as net_amount
     FROM tblQuotation tq
-    JOIN tblQuotationDetails tqd on tq.
+    JOIN tblQuotationDetails tqd ON tq.QuotationNo = tqd.QuotationNo;
 """
 
 EXTRACT_FACT_INVOICE_QUERY = """
-    SELECT 
-        ti.InvoiceNo as invoice_no,
-        tid.InvoiceDetailsNo as invoice_detail_no,
-        ti.RefQuotationNo as ref_quotation_no,
-        ti.PONumber as po_number,
-        ti.taxOption as tax_option,
-        ti.AuthorizingStatus as authorizing_status,
-        ti.Paid as is_paid,
-        ti.VAT as vat_applied,
-        ISNULL(YEAR(ti.[Date]) * 10000 + MONTH(ti.[Date]) * 100 + DAY(ti.[Date]), -1) AS invoice_date_key,
+    SELECT
+        ISNULL(
+            YEAR(ti.[Date]) * 10000 + MONTH(ti.[Date]) * 100 + DAY(ti.[Date]), -1) AS invoice_date_key,
         ISNULL(YEAR(ISNULL(ti.DueDate, ti.[Date])) * 10000 + MONTH(ISNULL(ti.DueDate, ti.[Date])) * 100 + DAY(ISNULL(ti.DueDate, ti.[Date])), -1) AS due_date_key,
-        ti.CustomerID AS customer_id,
-        tid.ItemID AS item_id,
-        ti.CashierID as cashier_employee_id,
-        ti.SalePersonID AS salesperson_employee_id,
-        tid.Qty as quantity_billed,
-        tid.Price as unit_price,
-        tid.Discount as discount_amount,
-        tid.Qty * tid.Price as gross_amount,
-        (tid.Qty * tid.Price) - tid.Discount as net_amount,
-        (((tid.Qty * tid.Price) - tid.Discount) / ti.OriginalAmount) * ti.VATAmount AS total_tax_amount,
-        ((tid.Qty * tid.Price) - tid.Discount) + ((((tid.Qty * tid.Price) - tid.Discount) / ti.OriginalAmount) * ti.VATAmount) AS net_revenue_collected
+        ti.CustomerID       AS customer_id,
+        tid.ItemID          AS item_id,
+        ti.CashierID        AS cashier_employee_id,
+        ti.SalePersonID     AS salesperson_employee_id,
+        ti.POSLocationID    AS location_id,
+        tid.CurrencyNo      AS currency_id,
+        ti.InvoiceNo        AS invoice_id,
+        tid.Qty                         AS quantity_billed,
+        tid.Price                       AS unit_price,
+        ISNULL(tid.Discount, 0)         AS discount_amount,
+        ISNULL(tid.UnitTax, 0)          AS unit_tax_amount,
+        (tid.Qty * tid.Price)           AS gross_revenue,
+        (((tid.Qty * tid.Price) - ISNULL(tid.Discount, 0)) / NULLIF(ti.OriginalAmount, 0)) * ti.VATAmount AS net_tax_amount,
+        ((tid.Qty * tid.Price) - ISNULL(tid.Discount, 0)) + ((((tid.Qty * tid.Price) - ISNULL(tid.Discount, 0)) / NULLIF(ti.OriginalAmount, 0)) * ti.VATAmount) AS net_revenue
     FROM tblInvoice ti
-    LEFT JOIN tblInvoiceDetails tid on ti.InvoiceNo = tid.InvoiceDetailsNo;
+    LEFT JOIN tblInvoiceDetails tid ON ti.InvoiceNo = tid.InvoiceNo
+    LEFT JOIN tblLocation tl on ti.POSLocationID = tl.LocationID;
 """
 
-EXTRACT_FACT_FINANCE_QUERY = """
-    SELECT 
-        (YEAR(i.[Date]) * 10000 + MONTH(i.[Date]) * 100 + DAY(i.[Date])) AS date_key,
-        i.InvoiceNo AS transaction_no,
-        'Collection' AS transaction_type,               
-        'Cash' AS payment_method, 
-        i.CashierID AS cashier_employee_id,           
-        i.CustomerID AS customer_id,
-        CAST(NULL AS INT) AS vendor_id, 
-        i.StationID AS station_id,
-        s.Description AS station_description,           
-        s.ComputerName AS station_computer_name,  
-        i.CashIn AS amount_paid,                        
-        (i.CashIn - i.ChangeCash) AS net_cash_flow      
-    FROM tblInvoice i
-    LEFT JOIN tblStation s ON i.StationID = s.StationID;
+EXTRACT_FACT_EXPENSE_QUERY = """
+    SELECT
+        YEAR(te.[Date]) * 10000 + MONTH(te.[Date]) * 100 + DAY(te.[Date]) AS expense_date_key,
+        YEAR(te.AuthorizingDate) * 10000 + MONTH(te.AuthorizingDate) * 100 + DAY(te.AuthorizingDate) AS authorizing_date_key,
+        te.PreparingPersonID    AS employee_id,
+        te.AuthorizingPersonID  AS authorizer_id,
+        te.VendorID             AS vendor_id,
+        te.DepartmentID         AS department_id,
+        ted.CurrencyNo          AS currency_id,
+        te.ExpenseNo            AS expense_no,
+        te.Reference            AS reference,
+        te.PaymentMethod        AS payment_method,
+        te.TaxOption            AS tax_option,
+        te.AuthorizingStatus    AS authorizing_status,
+        te.Paid                 AS is_paid,
+        ted.Qty                 AS quantity,
+        ted.UnitPrice           AS unit_price,
+        ISNULL(ted.Discount, 0) AS discount,
+        ISNULL(ted.TaxAmount,0) AS tax_amount
+    FROM tblExpense te
+    LEFT JOIN tblExpenseDetails ted ON te.ExpenseNo = ted.ExpenseNo
+"""
+
+EXTRACT_FACT_LEAD_ACTIVITY_QUERY = """
+    SELECT
+        YEAR(la.[Date]) * 10000 + MONTH(la.[Date]) * 100 + DAY(la.[Date]) AS activity_date_key,
+        YEAR(la.ModifyingDate) * 10000 + MONTH(la.ModifyingDate) * 100 + DAY(la.ModifyingDate) AS modified_date_key,
+        la.LeadNo AS lead_no,
+        la.StaffID AS employee_id,
+        lat.ActivityType AS activity_type,
+        la.Status           AS status
+    FROM tblLeadActivity la
+    LEFT JOIN tblLeadActivityType lat ON la.ActivityTypeNo = lat.ActivityTypeNo;
+"""
+
+EXTRACT_FACT_RECEIVE_PAYMENT_QUERY = """
+    SELECT
+        YEAR(rp.[Date]) * 10000 + MONTH(rp.[Date]) * 100 + DAY(rp.[Date]) AS payment_date_key,
+        rp.InvoiceNo            AS invoice_id,
+        rp.ReceivePersonID      AS employee_id,
+        ti.CustomerID           AS customer_id,      -- from tblInvoice join
+        rpd.CurrencyNo          AS currency_id,
+        rp.PaymentNo            AS payment_no,
+        rpd.[Payment Method]    AS payment_method,
+        rp.StationID            AS station_id,
+        ISNULL(rp.AmountDue, 0)     AS amount_due,
+        ISNULL(rp.AmountPaid, 0)    AS amount_paid,
+        ISNULL(rp.CashIn, 0)        AS cash_in,
+        ISNULL(rp.CashChange, 0)    AS cash_change
+    FROM tblReceivePayment rp
+    LEFT JOIN tblReceivePaymentDetails rpd
+        ON rp.InvoiceNo = rpd.InvoiceNo
+        AND rp.PaymentNo = rpd.PaymentNo
+    LEFT JOIN tblInvoice ti
+        ON rp.InvoiceNo = ti.InvoiceNo;
+"""
+
+EXTRACT_FACT_RECEIVE_ITEM_QUERY = """
+    SELECT
+        YEAR(ri.ReceivingDate) * 10000 + MONTH(ri.ReceivingDate) * 100 + DAY(ri.ReceivingDate) AS receive_date_key,
+        rid.ItemID              AS item_id,
+        ri.ReceivingPersonID    AS employee_id,
+        ri.VendorID             AS vendor_id,
+        ri.LocationID           AS location_id,
+        rid.CurrencyNo          AS currency_id,
+        ri.ReceiveNo            AS receive_no,
+        ri.ReferenceNo          AS reference_no,
+        ri.Status               AS status,
+        ISNULL(rid.Qty, 0)              AS quantity_received,
+        ISNULL(rid.Cost, 0)             AS unit_cost,
+        ISNULL(rid.Qty, 0) * ISNULL(rid.Cost, 0) AS line_amount
+    FROM tblReceiveItem ri
+    LEFT JOIN tblReceiveItemDetails rid ON ri.ReceiveNo = rid.ReceiveNo;
+"""
+
+EXTRACT_FACT_PURCHASE_REQUEST_QUERY = """
+    SELECT
+        -- date keys
+        YEAR(pr.[Date]) * 10000 + MONTH(pr.[Date]) * 100 + DAY(pr.[Date]) AS request_date_key,
+        YEAR(pr.DateRequired) * 10000 + MONTH(pr.DateRequired) * 100 + DAY(pr.DateRequired) AS required_date_key,
+        YEAR(pr.ApprovalDate) * 10000 + MONTH(pr.ApprovalDate) * 100 + DAY(pr.ApprovalDate) AS approval_date_key,
+        prd.ItemID              AS item_id,
+        pr.ModifyingPersonID    AS employee_id,
+        pr.VendorID             AS vendor_id,
+        pr.ApprovedByID         AS approver_id,
+        prd.CurrencyNo          AS currency_id,
+        pr.CustomerID           AS customer_id,
+        pr.PurchaseRequestNo    AS purchase_request_no,
+        pr.ApprovalStatus       AS approval_status,
+        pr.DeliveryStatus       AS delivery_status,
+        ISNULL(prd.Qty, 0)                              AS quantity_request,
+        ISNULL(prd.UnitCost, 0)                         AS unit_cost,
+        ISNULL(prd.Qty, 0) * ISNULL(prd.UnitCost, 0)   AS estimated_line_amount,
+        ISNULL(prd.DeliveringQty, 0)                    AS delivering_quantity
+    FROM tblPurchaseRequest pr
+    LEFT JOIN tblPurchaseRequestDetails prd
+        ON pr.PurchaseRequestNo = prd.PurchaseRequestNo;
+"""
+
+EXTRACT_FACT_RETURN_ITEM_QUERY = """
+    SELECT
+        YEAR(ri.ReturnDate) * 10000 + MONTH(ri.ReturnDate) * 100 + DAY(ri.ReturnDate) AS return_date_key,
+        rid.ItemID          AS item_id,
+        ri.StaffID          AS employee_id,
+        ri.ReturnNo         AS return_no,
+        ri.ReferenceNo      AS reference_no,
+        ri.Description      AS description,
+        ISNULL(rid.Qty, 0)      AS quantity_return,
+        ISNULL(rid.Amount, 0)   AS return_amount
+    FROM tblReturnItem ri
+    LEFT JOIN tblReturnItemDetails rid ON ri.ReturnNo = rid.ReturnNo;
+"""
+
+EXTRACT_FACT_ITEM_USED_QUERY = """
+    SELECT
+        -- date key
+        YEAR(iu.[Date]) * 10000 + MONTH(iu.[Date]) * 100 + DAY(iu.[Date]) AS date_key,
+        iu.ItemID       AS item_id,
+        iu.StaffID      AS employee_id,
+        iu.LocationID   AS location_id,
+        iu.Description  AS description,
+        ISNULL(iu.Qty, 0)       AS quantity_used,
+        ISNULL(iu.UnitCost, 0)  AS unit_cost
+    FROM tblItemUsed iu;
+"""
+
+EXTRACT_FACT_ISSUE_ITEM_QUERY = """
+    SELECT
+        YEAR(ii.IssuingDate) * 10000 + MONTH(ii.IssuingDate) * 100 + DAY(ii.IssuingDate) AS issue_date_key,
+        iid.ItemID              AS item_id,
+        ii.IssuingPersonID      AS employee_id,
+        tt.TeamName              AS team_name,
+        ii.IssueNo              AS issue_no,
+        ii.BoxNo                AS box_no,
+        ii.Status               AS status,
+        ISNULL(iid.Qty, 0)                              AS quantity_issued,
+        ISNULL(iid.Cost, 0)                             AS unit_cost,
+        ISNULL(iid.Qty, 0) * ISNULL(iid.Cost, 0)       AS total_issued_amount,
+        ii.location as location_name
+    FROM tblIssueItem ii
+    LEFT JOIN tblIssueItemDetails iid ON ii.IssueNo = iid.IssueNo
+    LEFT JOIN tblTeam tt on ii.TeamID = tt.TeamID;
+"""
+
+EXTRACT_FACT_WAREHOUSE_REQUEST_QUERY = """
+    SELECT
+        YEAR(wr.[Date]) * 10000 + MONTH(wr.[Date]) * 100 + DAY(wr.[Date]) AS request_date_key,
+        YEAR(wr.DeliveryDate) * 10000 + MONTH(wr.DeliveryDate) * 100 + DAY(wr.DeliveryDate) AS delivery_date_key,
+        wrd.ItemID                  AS item_id,
+        wr.RequestingPersonID       AS request_employee_id,
+        wr.ApprovedByID             AS approve_employee_id,
+        wr.CustomerID               AS customer_id,
+        wr.LocationID               AS location_id,
+        wr.RequestNo                AS request_no,
+        wr.RefSaleOrderNo           AS ref_sale_order_no,
+        wr.RequestType              AS request_type,
+        wr.Status                   AS status,
+        wr.DeliveryStatus           AS delivery_status,
+        ISNULL(wrd.Qty, 0)          AS quantity_request
+    FROM tblWarehouseRequest wr
+    LEFT JOIN tblWarehouseRequestDetails wrd ON wr.RequestNo = wrd.RequestNo
+"""
+
+EXTRACT_FACT_ITEM_TRANSFER_QUERY = """
+    SELECT
+        YEAR(t.TransferingDate) * 10000 + MONTH(t.TransferingDate) * 100 + DAY(t.TransferingDate) AS transfer_date_key,
+        td.ItemID               AS item_id,
+        t.TransferingPersonID   AS employee_id,
+        t.FromLocationID        AS source_location_id,
+        t.ToLocationID          AS dest_location_id,
+        t.TransferNo            AS transfer_no,
+        t.Status                AS status,
+        ISNULL(td.Qty, 0)       AS quantity_transfer
+    FROM tblTransfer t
+    LEFT JOIN tblTransferDetails td ON t.TransferNo = td.TransferNo;
 """

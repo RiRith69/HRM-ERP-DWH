@@ -75,7 +75,8 @@ def trans_location(raw_records):
         transformed.append({
             "location_id": row["location_id"],
             "location_name": row["location_name"] if row["location_name"] else "Unknown Location",       # Fix: "Unknown location" → "Unknown Location"
-            "description": row["description"] if row["description"] else "No Description Provided"       # Fix: "Provide" → "Provided"
+            "description": row["description"] if row["description"] else "No Description Provided",   # Fix: "Provide" → "Provided"
+            "pos_location": row["pos_location"]
         })
     return transformed
 
