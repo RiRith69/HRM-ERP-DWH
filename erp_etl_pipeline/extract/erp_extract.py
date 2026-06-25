@@ -162,13 +162,12 @@ EXTRACT_DIM_INVOICE_QUERY = """
         COALESCE(TRIM(AuthorizingStatus), 'Pending') AS authorizing_status,
         -- 💡 Convert SQL Server BIT (1/0) fields into true Booleans for PostgreSQL
         CASE 
-            WHEN Paid = 1 THEN CAST(1 AS BIT)
-            ELSE CAST(0 AS BIT)
+            WHEN Paid = 1 THEN 1
+            ELSE 0
         END AS is_paid,
-        
         CASE 
-            WHEN VAT = 1 THEN CAST(1 AS BIT)
-            ELSE CAST(0 AS BIT)
+            WHEN VAT = 1 THEN 1
+            ELSE 0
         END AS is_vat_applied
     FROM dbo.tblInvoice
     WHERE InvoiceNo IS NOT NULL;

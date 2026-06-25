@@ -36,8 +36,8 @@ ETL_Registry = [
         "extract_query": EXTRACT_item_QUERY,
         "transform_func": trans_item,
         "insert_query": """
-            INSERT INTO public.dim_item (item_id, vendor_name, description, brand_name, category_name, unit_of_measurement, unit_of_measurement_level2, inventory_type, item_status, average_cost, standard_unit_price, price_level2, price_level3, price_level4, price_level5)
-            VALUES (:item_id, :vendor_name, :description, :brand_name, :category_name, :unit_of_measurement, :unit_of_measurement_level2, :inventory_type, :item_status, :average_cost, :standard_unit_price, :price_level2, :price_level3, :price_level4, :price_level5)
+            INSERT INTO public.dim_item (item_id, vendor_name, description_item, brand_name, category_name, unit_of_measurement, unit_of_measurement_level2, inventory_type, item_status, average_cost, standard_unit_price, price_level2, price_level3, price_level4, price_level5)
+            VALUES (:item_id, :vendor_name, :description_item, :brand_name, :category_name, :unit_of_measurement, :unit_of_measurement_level2, :inventory_type, :item_status, :average_cost, :standard_unit_price, :price_level2, :price_level3, :price_level4, :price_level5)
             ON CONFLICT (item_id) DO NOTHING;
         """
     },
@@ -46,7 +46,7 @@ ETL_Registry = [
         "extract_query": EXTRACT_DIM_LOCATION_QUERY,
         "transform_func": trans_location,
         "insert_query": """
-            INSERT INTO public.dim_locations (location_id, location_name, description, pos_location)
+            INSERT INTO public.dim_location (location_id, location_name, description, pos_location)
             VALUES (:location_id, :location_name, :description, :pos_location)
             ON CONFLICT (location_id) DO NOTHING;
         """
@@ -76,7 +76,7 @@ ETL_Registry = [
         "extract_query": EXTRACT_DIM_DEPARTMENT_QUERY,
         "transform_func":trans_department,
         "insert_query": """
-            INSERT INTO public.dim_currency (department_id, department_name, is_active, creating_person_id)
+            INSERT INTO public.dim_department (department_id, department_name, is_active, creating_person_id)
             VALUES (:department_id, :department_name, :is_active, :creating_person_id)
             ON CONFLICT (department_id) DO NOTHING;
         """

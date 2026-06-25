@@ -47,7 +47,7 @@ def run_fact_etl(registry, source_conn, dw_conn):
             # step 5 — load
             with dw_conn.begin() as conn:
                 for _, row in validated_df.iterrows():
-                    conn.execute(text(etl['insert_query']), row.to_dict())
+                    conn.execute(text(etl['insert_query']), row.to_dict())  
 
             print(f"  ✅ {etl['target_table']} loaded successfully")
 

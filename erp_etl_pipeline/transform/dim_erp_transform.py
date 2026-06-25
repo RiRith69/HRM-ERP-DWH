@@ -1,3 +1,4 @@
+from config.db_config import get_engine
 def trans_customer(raw_records):
     transformed = []
     for row in raw_records:
@@ -25,7 +26,7 @@ def trans_vendor(raw_records):
             "city": row["city"] if row["city"] else "Unknown City",
             "country": row["country"] if row["country"] else "Unknown Country",
             "type_of_business": row["type_of_business"] if row["type_of_business"] else "Unknown",
-            "is_active": row["is_active"] if row["is_active"] is not None else 0                         # Already correct — kept as-is
+            "is_active": int(row["is_active"]) if row["is_active"] is not None else 0                         # Already correct — kept as-is
         })
     return transformed
  
@@ -151,8 +152,8 @@ def trans_invoice(raw_records):
             "tax_option": row["tax_option"] if row["tax_option"] else "Standard",
             "authorizing_status": row["authorizing_status"] if row["authorizing_status"] else "Pending",
             # BIT fields (1/0) from SQL — cast to int for consistency
-            "is_paid": int(row["is_paid"]) if row["is_paid"] is not None else 0,
-            "is_vat_applied": int(row["is_vat_applied"]) if row["is_vat_applied"] is not None else 0
+            "is_paid": bool(row["is_paid"]) if row["is_paid"] is not None else 0,
+            "is_vat_applied": bool(row["is_vat_applied"]) if row["is_vat_applied"] is not None else 0
         })
     return transformed
  
