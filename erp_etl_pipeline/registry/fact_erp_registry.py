@@ -28,7 +28,7 @@ ETL_Fact_Registry = [
                 :ref_sale_order_no, :quantity_shipped, :unit_price,
                 :discount_amount, :gross_delivery_value
             )
-            ON CONFLICT () DO NOTHING;
+            ON CONFLICT DO NOTHING;
         """
     },
     {
@@ -40,12 +40,12 @@ ETL_Fact_Registry = [
             ("SELECT customer_id, customer_key FROM dim_customer", "customer_id", "customer_key"),
             ("SELECT employee_id, employee_key FROM dim_employee", "employee_id", "employee_key"),
             ("SELECT item_id, item_key FROM dim_item", "item_id", "item_key"),
-            ("SELECT currency_id, currency_key FROM dim_currency", "currency_id", "currency_key"),
+            ("SELECT currency_no, currency_key FROM dim_currency", "currency_no", "currency_key"),
         ],
         "insert_query": """
             INSERT INTO public.fact_sale (date_key, customer_key, employee_key, item_key, currency_key, sale_order_no, quantity, unit_price, discount, line_amount)
             VALUES (:date_key, :customer_key, :employee_key, :item_key, :currency_key, :sale_order_no, :quantity, :unit_price, :discount, :line_amount)
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -58,12 +58,12 @@ ETL_Fact_Registry = [
             ("SELECT employee_id, employee_key FROM dim_employee", "employee_id", "employee_key"),
             ("SELECT vendor_id, vendor_key FROM dim_vendor", "vendor_id", "vendor_key"),
             ("SELECT customer_id, customer_key FROM dim_customer", "customer_id", "customer_key"),
-            ("SELECT currency_id, currency_key FROM dim_currency", "currency_id", "currency_key")
+            ("SELECT currency_no, currency_key FROM dim_currency", "currency_no", "currency_key")
         ],
         "insert_query": """
             INSERT INTO public.fact_purchase (date_key, item_key, employee_key, vendor_key, customer_key, currency_key, purchase_order_no, purchase_status, approval_status, quantity, unit_cost, total_amount)
             VALUES (:date_key, :item_key, :employee_key, :vendor_key, :customer_key, :currency_key, :purchase_order_no, :purchase_status, :approval_status, :quantity, :unit_cost, :total_amount)
-            ON CONFLict DO NOTHING;
+            ON CONFLict NOTHING;
         """
     },
     {
@@ -85,7 +85,7 @@ ETL_Fact_Registry = [
                 :date_key, :item_key, :location_key,
                 :vendor_key, :units_in_stock_snap
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
 
@@ -125,7 +125,7 @@ ETL_Fact_Registry = [
                 :quotation_status_key, :quotation_no, :quotation_detail_no,
                 :quantity, :unit_price, :discount_amount, :gross_amount, :net_amount
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -140,7 +140,7 @@ ETL_Fact_Registry = [
             ("SELECT employee_id, employee_key FROM dim_employee",     "cashier_employee_id",      "cashier_employee_key"),
             ("SELECT employee_id, employee_key FROM dim_employee",     "salesperson_employee_id",  "salesperson_employee_key"),
             ("SELECT location_id, location_key FROM dim_location",     "location_id",              "location_key"),
-            ("SELECT currency_id, currency_key FROM dim_currency",     "currency_id",              "currency_key"),
+            ("SELECT currency_no, currency_key FROM dim_currency",     "currency_no",              "currency_key"),
             ("SELECT invoice_id, invoice_key FROM dim_invoice",        "invoice_id",               "invoice_key"),
         ],
         "insert_query": """
@@ -162,7 +162,7 @@ ETL_Fact_Registry = [
                 :unit_tax_amount, :gross_revenue,
                 :net_tax_amount, :net_revenue
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -182,7 +182,7 @@ ETL_Fact_Registry = [
             ("SELECT vendor_id, vendor_key FROM dim_vendor",           "vendor_id",             "vendor_key"),
 
             # currency
-            ("SELECT currency_id, currency_key FROM dim_currency",     "currency_id",           "currency_key"),
+            ("SELECT currency_no, currency_key FROM dim_currency",     "currency_no",           "currency_key"),
 
             # department
             ("SELECT department_id, department_key FROM dim_department","department_id",         "department_key"),
@@ -204,7 +204,7 @@ ETL_Fact_Registry = [
                 :tax_option, :authorizing_status, :is_paid,
                 :quantity, :unit_price, :discount, :tax_amount
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -228,7 +228,7 @@ ETL_Fact_Registry = [
                 :activity_date_key, :modified_date_key,
                 :activity_type, :status
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -240,7 +240,7 @@ ETL_Fact_Registry = [
             ("SELECT invoice_id, invoice_key FROM dim_invoice",        "invoice_id",       "invoice_key"),
             ("SELECT employee_id, employee_key FROM dim_employee",     "employee_id",      "employee_key"),
             ("SELECT customer_id, customer_key FROM dim_customer",     "customer_id",      "customer_key"),
-            ("SELECT currency_id, currency_key FROM dim_currency",     "currency_id",      "currency_key"),
+            ("SELECT currency_no, currency_key FROM dim_currency",     "currency_no",      "currency_key"),
         ],
         "insert_query": """
             INSERT INTO public.fact_receive_payment (
@@ -255,7 +255,7 @@ ETL_Fact_Registry = [
                 :payment_no, :payment_method, :station_id,
                 :amount_due, :amount_paid, :cash_in, :cash_change
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -268,7 +268,7 @@ ETL_Fact_Registry = [
             ("SELECT employee_id, employee_key FROM dim_employee",     "employee_id",      "employee_key"),
             ("SELECT vendor_id, vendor_key FROM dim_vendor",           "vendor_id",        "vendor_key"),
             ("SELECT location_id, location_key FROM dim_location",     "location_id",      "location_key"),
-            ("SELECT currency_id, currency_key FROM dim_currency",     "currency_id",      "currency_key"),
+            ("SELECT currency_no, currency_key FROM dim_currency",     "currency_no",      "currency_key"),
         ],
         "insert_query": """
             INSERT INTO public.fact_receive_item (
@@ -283,7 +283,7 @@ ETL_Fact_Registry = [
                 :receive_no, :reference_no, :status,
                 :quantity_received, :unit_cost, :line_amount
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -301,7 +301,7 @@ ETL_Fact_Registry = [
             ("SELECT employee_id, employee_key FROM dim_employee",      "employee_id",       "employee_key"),
             ("SELECT vendor_id, vendor_key FROM dim_vendor",            "vendor_id",         "vendor_key"),
             ("SELECT employee_id, employee_key FROM dim_employee",      "approver_id",       "approver_key"),
-            ("SELECT currency_id, currency_key FROM dim_currency",      "currency_id",       "currency_key"),
+            ("SELECT currency_no, currency_key FROM dim_currency",      "currency_no",       "currency_key"),
             ("SELECT customer_id, customer_key FROM dim_customer",      "customer_id",       "customer_key"),
         ],
         "insert_query": """
@@ -321,7 +321,7 @@ ETL_Fact_Registry = [
                 :quantity_request, :unit_cost,
                 :estimated_line_amount, :delivering_quantity
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -344,7 +344,7 @@ ETL_Fact_Registry = [
                 :return_no, :reference_no, :description,
                 :quantity_return, :return_amount
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -366,7 +366,7 @@ ETL_Fact_Registry = [
                 :date_key, :item_key, :employee_key, :location_key,
                 :description, :quantity_used, :unit_cost
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -389,7 +389,7 @@ ETL_Fact_Registry = [
                 :team_name, :issue_no, :box_no, :status,
                 :quantity_issued, :unit_cost, :total_issued_amount, :location_name
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -425,7 +425,7 @@ ETL_Fact_Registry = [
                 :request_type, :status, :delivery_status,
                 :quantity_request
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     },
     {
@@ -452,7 +452,7 @@ ETL_Fact_Registry = [
                 :transfer_no, :status,
                 :quantity_transfer
             )
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT NOTHING;
         """
     }
 ]

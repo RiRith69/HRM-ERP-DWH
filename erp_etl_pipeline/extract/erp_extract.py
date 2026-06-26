@@ -185,7 +185,7 @@ EXTRACT_DIM_EXPENSE_TYPE_QUERY = """
 
 EXTRACT_FACT_DELIVERY_QUERY = """
     SELECT 
-        YEAR(dn.DeliveryDate) * 1000 + MONTH(dn.DeliveryDate) * 500 + DAY(dn.DeliveryDate) as date_key,
+        YEAR(dn.DeliveryDate) * 10000 + MONTH(dn.DeliveryDate) * 100 + DAY(dn.DeliveryDate) as date_key,
         dn.CustomerID as customer_id,
         dnd.ItemID as item_id,
         dn.PreparingPersonID as employee_id,
@@ -204,16 +204,16 @@ EXTRACT_FACT_DELIVERY_QUERY = """
 #tblSaleOrderDetail it seem this table contain the key as same as SaleOrderNo
 EXTRACT_FACT_SALE_QUERY = """
     SELECT 
-        YEAR(so.[Date]) * 1000 + MONTH(so.[Date]) * 500 + DAY(so.[Date]) as date_key,
+        YEAR(so.[Date]) * 10000 + MONTH(so.[Date]) * 100 + DAY(so.[Date]) as date_key,
         so.CustomerID as customer_id,
         sod.ItemID as item_id,
         so.PreparingPersonID as employee_id,
-        sod.CurrencyNo as currency_id,
+        sod.CurrencyNo as currency_no,
         so.SaleOrderNo as sale_order_no,
         sod.Qty as quantity,
         sod.UnitPrice as unit_price,
         sod.Discount as discount,
-        (sod.Qty * sod.UnitPrice) - ISNULL(sod.DiscountAmount, 0) AS line_amount
+        (sod.Qty * sod.UnitPrice) - ISNULL(sod.Discount, 0) AS line_amount
     FROM tblSaleOrder so
     LEFT JOIN tblSaleOrderDetails sod on so.SaleOrderNo = so.SaleOrderNo;
 """

@@ -59,8 +59,8 @@ def transfrom_fact_sale(raw_df, dims):
     dim_employee_df = dims['employee_id']['df']
     df = df.merge(dim_employee_df[['employee_id', 'employee_key']], on='employee_id',how='left').drop(columns=['employee_id'])
 
-    dim_currency_df = dims['currency_id']['df']
-    df = df.merge(dim_currency_df[['currency_id', 'currency_key']], on='currency_id', how='left').drop(columns=['currency_id'])
+    dim_currency_df = dims['currency_no']['df']
+    df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
 
     fact_columns = [
         'date_key',
@@ -256,9 +256,9 @@ def transform_fact_invoice(raw_df, dims):
     dim_location_df = dims['location_id']['df']
     df = df.merge(dim_location_df[['location_id', 'location_key']], on='location_id', how='left').drop(columns=['location_id'])
 
-    # currency_id → currency_key
-    dim_currency_df = dims['currency_id']['df']
-    df = df.merge(dim_currency_df[['currency_id', 'currency_key']], on='currency_id', how='left').drop(columns=['currency_id'])
+    # currency_no → currency_key
+    dim_currency_df = dims['currency_no']['df']
+    df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
 
     # invoice_id → invoice_key
     dim_invoice_df = dims['invoice_id']['df']
@@ -327,12 +327,12 @@ def transform_fact_expense(raw_df, dims):
         on='vendor_id', how='left'
     ).drop(columns=['vendor_id'])
 
-    # currency_id → currency_key
-    dim_currency_df = dims['currency_id']['df']
+    # currency_no → currency_key
+    dim_currency_df = dims['currency_no']['df']
     df = df.merge(
-        dim_currency_df[['currency_id', 'currency_key']],
-        on='currency_id', how='left'
-    ).drop(columns=['currency_id'])
+        dim_currency_df[['currency_no', 'currency_key']],
+        on='currency_no', how='left'
+    ).drop(columns=['currency_no'])
 
     # department_id → department_key
     dim_dept_df = dims['department_id']['df']
@@ -418,9 +418,9 @@ def transform_fact_receive_payment(raw_df, dims):
     dim_customer_df = dims['customer_id']['df']
     df = df.merge(dim_customer_df[['customer_id', 'customer_key']], on='customer_id', how='left').drop(columns=['customer_id'])
 
-    # currency_id → currency_key
-    dim_currency_df = dims['currency_id']['df']
-    df = df.merge(dim_currency_df[['currency_id', 'currency_key']], on='currency_id', how='left').drop(columns=['currency_id'])
+    # currency_no → currency_key
+    dim_currency_df = dims['currency_no']['df']
+    df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
 
     # final column alignment
     fact_columns = [
@@ -463,9 +463,9 @@ def transform_fact_receive_item(raw_df, dims):
     dim_location_df = dims['location_id']['df']
     df = df.merge(dim_location_df[['location_id', 'location_key']], on='location_id', how='left').drop(columns=['location_id'])
 
-    # currency_id → currency_key
-    dim_currency_df = dims['currency_id']['df']
-    df = df.merge(dim_currency_df[['currency_id', 'currency_key']], on='currency_id', how='left').drop(columns=['currency_id'])
+    # currency_no → currency_key
+    dim_currency_df = dims['currency_no']['df']
+    df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
 
     # final column alignment
     fact_columns = [
@@ -521,9 +521,9 @@ def transform_fact_purchase_request(raw_df, dims):
         on='approver_id', how='left'
     ).drop(columns=['approver_id'])
 
-    # currency_id → currency_key
-    dim_currency_df = dims['currency_id']['df']
-    df = df.merge(dim_currency_df[['currency_id', 'currency_key']], on='currency_id', how='left').drop(columns=['currency_id'])
+    # currency_no → currency_key
+    dim_currency_df = dims['currency_no']['df']
+    df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
 
     # customer_id → customer_key
     dim_customer_df = dims['customer_id']['df']

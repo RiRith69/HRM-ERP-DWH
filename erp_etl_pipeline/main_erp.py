@@ -1,3 +1,7 @@
+import sys
+import os
+# add root folder to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config.db_config import get_engine
 from erp_etl_pipeline.registry.dim_erp_registry import ETL_Registry
 from erp_etl_pipeline.registry.fact_erp_registry import ETL_Fact_Registry
