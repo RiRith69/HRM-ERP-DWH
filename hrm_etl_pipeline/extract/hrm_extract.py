@@ -228,35 +228,62 @@ EXTRACT_DIM_WORKING_PROFILE_QUERY = """
 
 EXTRACT_FACT_ATTENDANCE_QUERY = """
     SELECT 
-        CAST(staffID AS VARCHAR(50)) AS source_employee_id,
-        CAST([Date] AS Date) AS source_date_id,
-        CAST(schClassid AS int) AS source_shift_id,
-        CAST(LevelNo AS VARCHAR(50)) AS source_position_id,
-        CAST(No AS int) AS source_working_profile_id,
-
+        CAST(ta.staffID AS VARCHAR(50)) AS employee_id,
+        YEAR(ta.[Date]) * 10000 + MONTH(ta.[Date]) * 100 + DAY(ta.[Date]) as date_key,
+        CAST(cii.WorkCode AS int) AS shift_id,
+        CAST(tpl.LevelNo AS VARCHAR(50)) AS source_position_id,
+        CAST(twp.[No] AS varchar(50)) AS working_profile_id,
         CASE 
             WHEN Absence = 1 THEN 0.0
-            WHEN TimeIn IS NOT NULL AND TimeOut IS NOT NULL THEN
-                CAST(DATEDIFF(MINUTE, TimeIn, TimeOut) AS DECIMAL(5,2)) / 60.0
+            WHEN ta.TimeIn IS NOT NULL AND ta.TimeOut IS NOT NULL THEN
+                CAST(DATEDIFF(MINUTE, ta.TimeIn, ta.TimeOut) AS DECIMAL(5,2)) / 60.0
             ELSE 0.0 
         END AS work_hours,
-        
         CASE 
             WHEN Absence = 1 THEN 0.0
-            WHEN CAST(TimeIn as time) > '08:30:00' THEN DATEDIFF(MINUTE, '08:30:00', CAST(TimeIn as TIME))
+            WHEN CAST(ta.TimeIn as time) > '08:30:00' THEN DATEDIFF(MINUTE, '08:30:00', CAST(ta.TimeIn as TIME))
             ELSE 0
         END AS late_minutes,
-
         CASE 
-            WHEN Absence = 1 THEN 0.0
-            WHEN Permission = 1 THEN 'On Leave'
-            WHEN CAST(TimeIn as TIME) > '09:00:00' THEN 'Late'
-            WHEN status = 0 THEN 'Absence'
+            WHEN ta.Absence = 1 THEN 0.0
+            WHEN ta.Permission = 1 THEN 'On Leave'
+            WHEN CAST(ta.TimeIn as TIME) > '09:00:00' THEN 'Late'
+            WHEN ta.status = 0 THEN 'Absence'
             ELSE 'Present'
         END as attendance_status,
-        CAST(TimeIn AS TIME) AS check_in_time,
-        CAST(TimeOut AS TIME) AS check_out_time,
-        OverTime as overtime_hours
-    FROM tblAttendance
+        CAST(ta.TimeIn AS TIME) AS check_in_time,
+        CAST(ta.TimeOut AS TIME) AS check_out_time,
+        ta.OverTime as overtime_hours
+    FROM tblAttendance ta
+    LEFT JOIN CHECKINOUT cii on ta.AttendanceNo = cii.AttendanceNo
+    LEFT JOIN tblStaff ts on ta.StaffID = ts.StaffID
+    LEFT JOIN tblWorkingSchedule tws on ts.WorkingScheduleNo = tws.ScheduleID
+    LEFT JOIN tblWorkingProfile twp on tws.ScheduleID = twp.SheduleNo
+    LEFT JOIN tblPositionList tpl on ts.[Position] = tpl.LevelNo
     WHERE staffID is not null;
+"""
+
+EXTRCAT_FACT_PAYROLL_QUERY = """
+    SELECT  
+        YEAR(TRY_CONVERT(DATE, tpr.[Month] + ' 06, ' + CAST(tpr.[Year] AS VARCHAR(4)))) * 10000 
+        + MONTH(TRY_CONVERT(DATE, tpr.[Month] + ' 06, ' + CAST(tpr.[Year] AS VARCHAR(4)))) * 100 
+        + 6 AS date_key,
+        CAST(tpr.StaffID VARCHAR(40)) as employee_id,
+        CAST(ts.MainOrgID VARCHAR(10)) AS organization_id,
+        CAST(ts.[Position] VARCHAR(10)) AS position_id,
+        CAST(tprd.ID as INT) as component_id,
+        CAST(ts.BenefitProfileNo VARCHAR(40)) AS benefit_profile_id,
+        CAST(tprd.Amount AS DECIMAL(10,2)) AS allowance_amount,
+        CAST(tpr.SumAbsence AS VARCHAR(20)) AS sum_absence
+    FROM tblPayRoll tpr
+    LEFT JOIN tblStaff ts on tpr.StaffID = ts.StaffID
+    LEFT JOIN tblPayRollDetail tprd on tpr.[No] = tprd.[No];
+"""
+
+EXTRACT_FACT_LEAVE_QUERY = """
+    SELECT
+        YEAR(ta.[Date]) * 10000 + MONTH(ta.[Date]) * 100 + DAY(ta.[Date]) as date_key,
+        CAST(StaffID VARCHAR(20)) as employee_id,
+        
+
 """

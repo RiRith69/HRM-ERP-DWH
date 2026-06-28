@@ -1,6 +1,6 @@
 # transformations.py
 
-def clean_shift(raw_records):
+def trans_shift(raw_records):
     """Cleans raw shift data records from SQL Server."""
     transformed = []
     for row in raw_records:
