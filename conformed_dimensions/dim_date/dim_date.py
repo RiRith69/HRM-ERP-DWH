@@ -6,7 +6,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 from datetime import date, timedelta
 
-START_DATE = date(2020, 1, 1)    # Inclusive — adjust as needed
+START_DATE = date(2013, 1, 1)    # Inclusive — adjust as needed
 END_DATE   = date(2040, 12, 31)  # Inclusive — adjust as needed
 # ─────────────────────────────────────────────────────────────────────────────
 # CAMBODIAN PUBLIC HOLIDAYS

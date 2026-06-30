@@ -221,13 +221,12 @@ EXTRACT_FACT_SALE_QUERY = """
 # queries.py
 
 EXTRACT_FACT_PURCHASE_QUERY = """
-    SELECT 
+    SELECT DISTINCT
         YEAR(po.[Date]) * 10000 + MONTH(po.[Date]) * 100 + DAY(po.[Date]) AS date_key,
         pod.ItemID AS item_id,
         po.ApprovedByID AS employee_id,            
         po.VendorID AS vendor_id,                  
-        po.CustomerID AS customer_id, 
-        pod.CurrencyNo AS currency_id,
+        pod.CurrencyNo AS currency_no,
         po.PurchaseOrderNo AS purchase_order_no,
         po.Status AS purchase_status,        
         po.ApprovalStatus AS approval_status,  
@@ -239,7 +238,7 @@ EXTRACT_FACT_PURCHASE_QUERY = """
 """
 #Not yet include employeeID
 EXTRACT_Fact_Inventory_QUERY = """
-    SELECT 
+    SELECT DISTINCT
         YEAR(tih.[Date]) * 10000 + MONTH(tih.[Date]) * 100 + DAY(tih.[Date]) AS date_key,
         tih.ItemID as item_id,
         tih.LocationID as location_id,
@@ -249,30 +248,37 @@ EXTRACT_Fact_Inventory_QUERY = """
     JOIN tblItem it on tih.ItemID = it.ItemID;
 """
 
-#It seem like this table is do not have the key that connect with each other
+# It seem like this table is do not have the key that connect with each other
 EXTRACT_FACT_QUOTATION_QUERY = """
-    SELECT 
+    SELECT DISTINCT
         YEAR(tq.[Date]) * 10000 + MONTH(tq.[Date]) * 100 + DAY(tq.[Date]) AS date_key,
-        YEAR(tq.AuthorizingDate) * 10000 + MONTH(tq.AuthorizingDate) * 100 + DAY(tq.AuthorizingDate) as authorizing_date_key,
         tq.CustomerID as customer_id,
         tqd.ItemID as item_id,
         tq.PreparingPersonID   as preparing_employee_id,
         tq.ContactingPersonID  as contacting_employee_id,
         tq.AuthorizingPersonID as authorizing_employee_id,
+        CASE 
+            WHEN tq.AuthorizingDate IS NULL 
+              OR YEAR(tq.AuthorizingDate) < 2013 
+              OR YEAR(tq.AuthorizingDate) > 2040
+            THEN -1 
+            ELSE YEAR(tq.AuthorizingDate) * 10000 + MONTH(tq.AuthorizingDate) * 100 + DAY(tq.AuthorizingDate)
+        END AS authorizing_date_key, 
         ISNULL(tq.AuthorizingStatus, 'Unknown') AS authorizing_status,
         tq.QuotationNo as quotation_no,
-        tqd.QuotationNo as quotation_detail_no,
+        tqd.QuotationNo as quotation_detail_no, 
         tqd.Qty as quantity,
         tqd.UnitPrice as unit_price,
         tqd.Discount as discount_amount,
         tqd.Qty * tqd.UnitPrice as gross_amount,
         (tqd.Qty * tqd.UnitPrice) - tqd.Discount as net_amount
     FROM tblQuotation tq
+    -- The join key is correct (Master Order to Detail lines)
     JOIN tblQuotationDetails tqd ON tq.QuotationNo = tqd.QuotationNo;
 """
 
 EXTRACT_FACT_INVOICE_QUERY = """
-    SELECT
+    SELECT DISTINCT
         ISNULL(
             YEAR(ti.[Date]) * 10000 + MONTH(ti.[Date]) * 100 + DAY(ti.[Date]), -1) AS invoice_date_key,
         ISNULL(YEAR(ISNULL(ti.DueDate, ti.[Date])) * 10000 + MONTH(ISNULL(ti.DueDate, ti.[Date])) * 100 + DAY(ISNULL(ti.DueDate, ti.[Date])), -1) AS due_date_key,
@@ -281,8 +287,8 @@ EXTRACT_FACT_INVOICE_QUERY = """
         ti.CashierID        AS cashier_employee_id,
         ti.SalePersonID     AS salesperson_employee_id,
         ti.POSLocationID    AS location_id,
-        tid.CurrencyNo      AS currency_id,
-        ti.InvoiceNo        AS invoice_id,
+        tid.CurrencyNo      AS currency_no,
+        ti.InvoiceNo        AS invoice_no,
         tid.Qty                         AS quantity_billed,
         tid.Price                       AS unit_price,
         ISNULL(tid.Discount, 0)         AS discount_amount,
@@ -296,14 +302,14 @@ EXTRACT_FACT_INVOICE_QUERY = """
 """
 
 EXTRACT_FACT_EXPENSE_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(te.[Date]) * 10000 + MONTH(te.[Date]) * 100 + DAY(te.[Date]) AS expense_date_key,
         YEAR(te.AuthorizingDate) * 10000 + MONTH(te.AuthorizingDate) * 100 + DAY(te.AuthorizingDate) AS authorizing_date_key,
         te.PreparingPersonID    AS employee_id,
         te.AuthorizingPersonID  AS authorizer_id,
         te.VendorID             AS vendor_id,
         te.DepartmentID         AS department_id,
-        ted.CurrencyNo          AS currency_id,
+        ted.CurrencyNo          AS currency_no,
         te.ExpenseNo            AS expense_no,
         te.Reference            AS reference,
         te.PaymentMethod        AS payment_method,
@@ -319,10 +325,10 @@ EXTRACT_FACT_EXPENSE_QUERY = """
 """
 
 EXTRACT_FACT_LEAD_ACTIVITY_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(la.[Date]) * 10000 + MONTH(la.[Date]) * 100 + DAY(la.[Date]) AS activity_date_key,
         YEAR(la.ModifyingDate) * 10000 + MONTH(la.ModifyingDate) * 100 + DAY(la.ModifyingDate) AS modified_date_key,
-        la.LeadNo AS lead_no,
+        la.LeadNo AS lead_id,
         la.StaffID AS employee_id,
         lat.ActivityType AS activity_type,
         la.Status           AS status
@@ -331,12 +337,12 @@ EXTRACT_FACT_LEAD_ACTIVITY_QUERY = """
 """
 
 EXTRACT_FACT_RECEIVE_PAYMENT_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(rp.[Date]) * 10000 + MONTH(rp.[Date]) * 100 + DAY(rp.[Date]) AS payment_date_key,
-        rp.InvoiceNo            AS invoice_id,
+        rp.InvoiceNo            AS invoice_no,
         rp.ReceivePersonID      AS employee_id,
         ti.CustomerID           AS customer_id,      -- from tblInvoice join
-        rpd.CurrencyNo          AS currency_id,
+        rpd.CurrencyNo          AS currency_no,
         rp.PaymentNo            AS payment_no,
         rpd.[Payment Method]    AS payment_method,
         rp.StationID            AS station_id,
@@ -353,13 +359,13 @@ EXTRACT_FACT_RECEIVE_PAYMENT_QUERY = """
 """
 
 EXTRACT_FACT_RECEIVE_ITEM_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(ri.ReceivingDate) * 10000 + MONTH(ri.ReceivingDate) * 100 + DAY(ri.ReceivingDate) AS receive_date_key,
         rid.ItemID              AS item_id,
         ri.ReceivingPersonID    AS employee_id,
         ri.VendorID             AS vendor_id,
         ri.LocationID           AS location_id,
-        rid.CurrencyNo          AS currency_id,
+        rid.CurrencyNo          AS currency_no,
         ri.ReceiveNo            AS receive_no,
         ri.ReferenceNo          AS reference_no,
         ri.Status               AS status,
@@ -371,7 +377,7 @@ EXTRACT_FACT_RECEIVE_ITEM_QUERY = """
 """
 
 EXTRACT_FACT_PURCHASE_REQUEST_QUERY = """
-    SELECT
+    SELECT DISTINCT
         -- date keys
         YEAR(pr.[Date]) * 10000 + MONTH(pr.[Date]) * 100 + DAY(pr.[Date]) AS request_date_key,
         YEAR(pr.DateRequired) * 10000 + MONTH(pr.DateRequired) * 100 + DAY(pr.DateRequired) AS required_date_key,
@@ -380,7 +386,7 @@ EXTRACT_FACT_PURCHASE_REQUEST_QUERY = """
         pr.ModifyingPersonID    AS employee_id,
         pr.VendorID             AS vendor_id,
         pr.ApprovedByID         AS approver_id,
-        prd.CurrencyNo          AS currency_id,
+        prd.CurrencyNo          AS currency_no,
         pr.CustomerID           AS customer_id,
         pr.PurchaseRequestNo    AS purchase_request_no,
         pr.ApprovalStatus       AS approval_status,
@@ -395,7 +401,7 @@ EXTRACT_FACT_PURCHASE_REQUEST_QUERY = """
 """
 
 EXTRACT_FACT_RETURN_ITEM_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(ri.ReturnDate) * 10000 + MONTH(ri.ReturnDate) * 100 + DAY(ri.ReturnDate) AS return_date_key,
         rid.ItemID          AS item_id,
         ri.StaffID          AS employee_id,
@@ -409,7 +415,7 @@ EXTRACT_FACT_RETURN_ITEM_QUERY = """
 """
 
 EXTRACT_FACT_ITEM_USED_QUERY = """
-    SELECT
+    SELECT DISTINCT
         -- date key
         YEAR(iu.[Date]) * 10000 + MONTH(iu.[Date]) * 100 + DAY(iu.[Date]) AS date_key,
         iu.ItemID       AS item_id,
@@ -422,7 +428,7 @@ EXTRACT_FACT_ITEM_USED_QUERY = """
 """
 
 EXTRACT_FACT_ISSUE_ITEM_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(ii.IssuingDate) * 10000 + MONTH(ii.IssuingDate) * 100 + DAY(ii.IssuingDate) AS issue_date_key,
         iid.ItemID              AS item_id,
         ii.IssuingPersonID      AS employee_id,
@@ -440,7 +446,7 @@ EXTRACT_FACT_ISSUE_ITEM_QUERY = """
 """
 
 EXTRACT_FACT_WAREHOUSE_REQUEST_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(wr.[Date]) * 10000 + MONTH(wr.[Date]) * 100 + DAY(wr.[Date]) AS request_date_key,
         YEAR(wr.DeliveryDate) * 10000 + MONTH(wr.DeliveryDate) * 100 + DAY(wr.DeliveryDate) AS delivery_date_key,
         wrd.ItemID                  AS item_id,
@@ -459,7 +465,7 @@ EXTRACT_FACT_WAREHOUSE_REQUEST_QUERY = """
 """
 
 EXTRACT_FACT_ITEM_TRANSFER_QUERY = """
-    SELECT
+    SELECT DISTINCT
         YEAR(t.TransferingDate) * 10000 + MONTH(t.TransferingDate) * 100 + DAY(t.TransferingDate) AS transfer_date_key,
         td.ItemID               AS item_id,
         t.TransferingPersonID   AS employee_id,

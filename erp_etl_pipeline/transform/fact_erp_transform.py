@@ -1,31 +1,54 @@
 import pandas as pd
 
 def transform_fact_delivery(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
-    # date_key already YYYYMMDD → directly matches dim_date SK
-    dim_date_df = dims['date_key']['df']
-    df = df.merge(dim_date_df[['date_key']], on='date_key', how='left')
+    # date_key — validate only, replace out of range with -1 ✅
+    # merging causes duplicate column since date_key already exists in df
+    valid_date_keys = dims['date_key']['df']['date_key'].tolist()
+    df['date_key'] = df['date_key'].where(
+        df['date_key'].isin(valid_date_keys), -1
+    )
 
     # customer_id → customer_key
-    dim_customer_df = dims['customer_id']['df']
-    df = df.merge(dim_customer_df[['customer_id', 'customer_key']], on='customer_id', how='left').drop(columns=['customer_id'])
+    dim_customer_df = dims['customer_id']['df'].copy()
+    df = df.merge(
+        dim_customer_df[['customer_id', 'customer_key']], 
+        on='customer_id', how='left'
+    ).drop(columns=['customer_id'])
+    df['customer_key'] = df['customer_key'].fillna(-1)
 
     # employee_id → employee_key
-    dim_employee_df = dims['employee_id']['df']
-    df = df.merge(dim_employee_df[['employee_id', 'employee_key']], on='employee_id',how='left').drop(columns=['employee_id'])
+    dim_employee_df = dims['employee_id']['df'].copy()
+    df = df.merge(
+        dim_employee_df[['employee_id', 'employee_key']], 
+        on='employee_id', how='left'
+    ).drop(columns=['employee_id'])
+    df['employee_key'] = df['employee_key'].fillna(-1)
 
     # item_id → item_key
-    dim_item_df = dims['item_id']['df']
-    df = df.merge(dim_item_df[['item_id', 'item_key']], on='item_id', how='left').drop(columns=['item_id'])
+    dim_item_df = dims['item_id']['df'].copy()
+    df = df.merge(
+        dim_item_df[['item_id', 'item_key']], 
+        on='item_id', how='left'
+    ).drop(columns=['item_id'])
+    df['item_key'] = df['item_key'].fillna(-1)
 
     # vendor_id → vendor_key
-    dim_vendor_df = dims['vendor_id']['df']
-    df = df.merge(dim_vendor_df[['vendor_id', 'vendor_key']], on='vendor_id', how='left').drop(columns=['vendor_id'])
+    dim_vendor_df = dims['vendor_id']['df'].copy()
+    df = df.merge(
+        dim_vendor_df[['vendor_id', 'vendor_key']], 
+        on='vendor_id', how='left'
+    ).drop(columns=['vendor_id'])
+    df['vendor_key'] = df['vendor_key'].fillna(-1)
 
     # delivery_status → delivery_status_key
-    dim_status_df = dims['delivery_no']['df']
-    df = df.merge(dim_status_df[['delivery_no', 'delivery_status_key']], on='delivery_no', how='left').drop(columns=['delivery_no']) 
+    dim_status_df = dims['delivery_no']['df'].copy()
+    df = df.merge(
+        dim_status_df[['delivery_no', 'delivery_status_key']], 
+        on='delivery_no', how='left'
+    ).drop(columns=['delivery_no'])
+    df['delivery_status_key'] = df['delivery_status_key'].fillna(-1)
 
     fact_columns = [
         'date_key',
@@ -42,10 +65,10 @@ def transform_fact_delivery(raw_df, dims):
         'gross_delivery_value'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
-
 def transfrom_fact_sale(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     dim_date_df = dims["date_key"]['df']
     df = df.merge(dim_date_df[['date_key']], on='date_key', how='left')
@@ -75,10 +98,11 @@ def transfrom_fact_sale(raw_df, dims):
         'line_amount'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_purchase(raw_df,dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     dim_date_df = dims["date_key"]['df']
     df = df.merge(dim_date_df[['date_key']], on='date_key', how='left')
@@ -91,16 +115,14 @@ def transform_fact_purchase(raw_df,dims):
 
     dim_vendor_df = dims['vendor_id']['df']
     df = df.merge(dim_vendor_df[['vendor_id', 'vendor_key']], on='vendor_id', how='left').drop(columns=['vendor_id'])
-
-    dim_customer_df = dims['customer_id']['df']
-    df = df.merge(dim_customer_df[['customer_id', 'customer_key']], on='customer_id', how='left').drop(columns=['customer_id'])
     
+    dim_currency_df = dims['currency_no']["df"]
+    df= df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
     fact_columns = [
         'date_key',
         'item_key',
         'employee_key',
         'vendor_key',
-        'customer_key',
         'currency_key',
         'purchase_order_no',
         'purchase_status',
@@ -110,26 +132,37 @@ def transform_fact_purchase(raw_df,dims):
         'total_amount'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_inventory(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
-    # date_key already YYYYMMDD
-    dim_date_df = dims['date_key']['df']
-    df = df.merge(dim_date_df[['date_key']], on='date_key', how='left')
+    # date_key — validate only, no merge needed
+    valid_date_keys = dims['date_key']['df']['date_key'].tolist()
+    df['date_key'] = df['date_key'].where(
+        df['date_key'].isin(valid_date_keys), -1
+    )
 
     # item_id → item_key
     dim_item_df = dims['item_id']['df']
     df = df.merge(dim_item_df[['item_id', 'item_key']], on='item_id', how='left').drop(columns=['item_id'])
 
     # location_id → location_key
-    dim_location_df = dims['location_id']['df']
-    df = df.merge(dim_location_df[['location_id', 'location_key']], on='location_id', how='left').drop(columns=['location_id'])
+    dim_location_df = dims['location_id']['df'].copy()
+    df = df.merge(
+        dim_location_df[['location_id', 'location_key']],
+        on='location_id', how='left'
+    ).drop(columns=['location_id'])
+    df['location_key'] = df['location_key'].fillna(-1)
 
     # vendor_id → vendor_key
-    dim_vendor_df = dims['vendor_id']['df']
-    df = df.merge(dim_vendor_df[['vendor_id', 'vendor_key']], on='vendor_id', how='left').drop(columns=['vendor_id'])
+    dim_vendor_df = dims['vendor_id']['df'].copy()
+    df = df.merge(
+        dim_vendor_df[['vendor_id', 'vendor_key']],
+        on='vendor_id', how='left'
+    ).drop(columns=['vendor_id'])
+    df['vendor_key'] = df['vendor_key'].fillna(-1)
 
     fact_columns = [
         'date_key',
@@ -139,60 +172,88 @@ def transform_fact_inventory(raw_df, dims):
         'units_in_stock_snap'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
+
 def transform_fact_quotation(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
-    # date_key already YYYYMMDD
-    dim_date_df = dims['date_key']['df']
-    df = df.merge(dim_date_df[['date_key']], on='date_key', how='left')
+    # date_key — validate only, no merge needed
+    df['date_key'] = df['date_key'].astype('Int64')
+    df['authorizing_date_key'] = df['authorizing_date_key'].astype('Int64')
 
-    # authorizing_date_key → same dim_date but different column
-    dim_auth_date_df = dims['authorizing_date_key']['df']
-    df = df.merge(dim_auth_date_df[['date_key']].rename(columns={'date_key': 'authorizing_date_key'}), on= 'authorizing_date_key',how= 'left')
+    # 2. date_key — if not valid, assign pd.NA instead of -1
+    valid_date_keys = dims['date_key']['df']['date_key'].tolist()
+    df['date_key'] = df['date_key'].where(
+        df['date_key'].isin(valid_date_keys), pd.NA
+    )
+
+    # 3. authorizing_date_key — if not valid, assign pd.NA instead of -1
+    valid_auth_date_keys = dims['authorizing_date_key']['df']['date_key'].tolist()
+    df['authorizing_date_key'] = df['authorizing_date_key'].where(
+        df['authorizing_date_key'].isin(valid_auth_date_keys), pd.NA
+    )
 
     # customer_id → customer_key
-    dim_customer_df = dims['customer_id']['df']
-    df = df.merge(dim_customer_df[['customer_id', 'customer_key']], on='customer_id', how='left').drop(columns=['customer_id'])
+    dim_customer_df = dims['customer_id']['df'].copy()
+    df = df.merge(
+        dim_customer_df[['customer_id', 'customer_key']],
+        on='customer_id', how='left'
+    ).drop(columns=['customer_id'])
+    df['customer_key'] = df['customer_key'].fillna(-1)
 
     # item_id → item_key
     dim_item_df = dims['item_id']['df']
-    df = df.merge(dim_item_df[['item_id', 'item_key']], on='item_id', how='left').drop(columns=['item_id'])
+    df = df.merge(
+        dim_item_df[['item_id', 'item_key']],
+        on='item_id', how='left'
+    ).drop(columns=['item_id'])
+    df['item_key'] = df['item_key'].fillna(-1)
 
     # preparing_employee_id → preparing_employee_key
-    dim_emp_df = dims['preparing_employee_id']['df']
+    # use .copy() to prevent pandas from reusing the same dataframe reference
+    dim_preparing_emp_df = dims['preparing_employee_id']['df'].copy()
     df = df.merge(
-        dim_emp_df[['employee_id', 'employee_key']].rename(columns={
+        dim_preparing_emp_df[['employee_id', 'employee_key']].rename(columns={
             'employee_id':  'preparing_employee_id',
             'employee_key': 'preparing_employee_key'
         }),
         on='preparing_employee_id', how='left'
     ).drop(columns=['preparing_employee_id'])
+    df['preparing_employee_key'] = df['preparing_employee_key'].fillna(-1)
 
     # contacting_employee_id → contacting_employee_key
-    dim_emp_df = dims['contacting_employee_id']['df']
+    # fresh .copy() so it does not conflict with preparing merge above
+    dim_contacting_emp_df = dims['contacting_employee_id']['df'].copy()
     df = df.merge(
-        dim_emp_df[['employee_id', 'employee_key']].rename(columns={
+        dim_contacting_emp_df[['employee_id', 'employee_key']].rename(columns={
             'employee_id':  'contacting_employee_id',
             'employee_key': 'contacting_employee_key'
         }),
         on='contacting_employee_id', how='left'
     ).drop(columns=['contacting_employee_id'])
+    df['contacting_employee_key'] = df['contacting_employee_key'].fillna(-1)
 
     # authorizing_employee_id → authorizing_employee_key
-    dim_emp_df = dims['authorizing_employee_id']['df']
+    # fresh .copy() so it does not conflict with previous employee merges
+    dim_authorizing_emp_df = dims['authorizing_employee_id']['df'].copy()
     df = df.merge(
-        dim_emp_df[['employee_id', 'employee_key']].rename(columns={
+        dim_authorizing_emp_df[['employee_id', 'employee_key']].rename(columns={
             'employee_id':  'authorizing_employee_id',
             'employee_key': 'authorizing_employee_key'
         }),
         on='authorizing_employee_id', how='left'
     ).drop(columns=['authorizing_employee_id'])
+    df['authorizing_employee_key'] = df['authorizing_employee_key'].fillna(-1)
 
     # authorizing_status → quotation_status_key
-    dim_status_df = dims['authorizing_status']['df']
-    df = df.merge(dim_status_df[['authorizing_status', 'quotation_status_key']], on='authorizing_status', how='left').drop(columns=['authorizing_status'])
+    dim_status_df = dims['authorizing_status']['df'].copy()
+    df = df.merge(
+        dim_status_df[['authorizing_status', 'quotation_status_key']],
+        on='authorizing_status', how='left'
+    ).drop(columns=['authorizing_status'])
+    df['quotation_status_key'] = df['quotation_status_key'].fillna(-1)
 
     # final column alignment
     fact_columns = [
@@ -213,10 +274,10 @@ def transform_fact_quotation(raw_df, dims):
         'net_amount'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
-
 def transform_fact_invoice(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # invoice_date_key → validate against dim_date
     dim_date_df = dims['invoice_date_key']['df']
@@ -260,9 +321,9 @@ def transform_fact_invoice(raw_df, dims):
     dim_currency_df = dims['currency_no']['df']
     df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
 
-    # invoice_id → invoice_key
-    dim_invoice_df = dims['invoice_id']['df']
-    df = df.merge(dim_invoice_df[['invoice_id', 'invoice_key']], on='invoice_id', how='left').drop(columns=['invoice_id'])
+    # invoice_no → invoice_key
+    dim_invoice_df = dims['invoice_no']['df']
+    df = df.merge(dim_invoice_df[['invoice_no', 'invoice_key']], on='invoice_no', how='left').drop(columns=['invoice_no'])
 
     # final column alignment
     fact_columns = [
@@ -284,11 +345,12 @@ def transform_fact_invoice(raw_df, dims):
         'net_revenue'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
+    df = df.where(pd.notnull(df), None)
     return df
 
 def transform_fact_expense(raw_df, dims):
-    df = raw_df.copy()
-
+    df = raw_df.copy().drop_duplicates()
     # expense_date_key → validate against dim_date
     dim_date_df = dims['expense_date_key']['df']
     df = df.merge(
@@ -362,10 +424,12 @@ def transform_fact_expense(raw_df, dims):
         'tax_amount'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
+    df['quantity'] = df['quantity'].astype('Int64')
     return df
 
 def transform_fact_lead_activity(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # activity_date_key → validate against dim_date
     dim_date_df = dims['activity_date_key']['df']
@@ -379,9 +443,9 @@ def transform_fact_lead_activity(raw_df, dims):
     dim_mod_date_df = dims['modified_date_key']['df']
     df = df.merge(dim_mod_date_df[['date_key']].rename(columns={'date_key': 'modified_date_key'}), on='modified_date_key', how='left')
 
-    # lead_no → lead_key
-    dim_lead_df = dims['lead_no']['df']
-    df = df.merge(dim_lead_df[['lead_no', 'lead_key']], on='lead_no',how='left').drop(columns=['lead_no'])
+    # lead_id → lead_key
+    dim_lead_df = dims['lead_id']['df']
+    df = df.merge(dim_lead_df[['lead_id', 'lead_key']], on='lead_id',how='left').drop(columns=['lead_id'])
 
     # employee_id → employee_key
     dim_emp_df = dims['employee_id']['df']
@@ -397,18 +461,19 @@ def transform_fact_lead_activity(raw_df, dims):
         'status'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_receive_payment(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # payment_date_key → validate against dim_date
     dim_date_df = dims['payment_date_key']['df']
     df = df.merge(dim_date_df[['date_key']].rename(columns={'date_key': 'payment_date_key'}), on='payment_date_key', how='left')
 
-    # invoice_id → invoice_key
-    dim_invoice_df = dims['invoice_id']['df']
-    df = df.merge(dim_invoice_df[['invoice_id', 'invoice_key']], on='invoice_id', how='left').drop(columns=['invoice_id'])
+    # invoice_no → invoice_key
+    dim_invoice_df = dims['invoice_no']['df']
+    df = df.merge(dim_invoice_df[['invoice_no', 'invoice_key']], on='invoice_no', how='left').drop(columns=['invoice_no'])
 
     # employee_id → employee_key
     dim_emp_df = dims['employee_id']['df']
@@ -438,10 +503,11 @@ def transform_fact_receive_payment(raw_df, dims):
         'cash_change'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_receive_item(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # receive_date_key → validate against dim_date
     dim_date_df = dims['receive_date_key']['df']
@@ -483,10 +549,12 @@ def transform_fact_receive_item(raw_df, dims):
         'line_amount'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
+    df['receive_date_key'] = df['receive_date_key'].replace(19000101, -1)
     return df
 
 def transform_fact_purchase_request(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # request_date_key → validate against dim_date
     dim_date_df = dims['request_date_key']['df']
@@ -495,10 +563,15 @@ def transform_fact_purchase_request(raw_df, dims):
     # required_date_key → same dim_date different role
     dim_req_date_df = dims['required_date_key']['df']
     df = df.merge(dim_req_date_df[['date_key']].rename(columns={'date_key': 'required_date_key'}), on='required_date_key', how='left')
-
     # approval_date_key → same dim_date different role
     dim_app_date_df = dims['approval_date_key']['df']
-    df = df.merge(dim_app_date_df[['date_key']].rename(columns={'date_key': 'approval_date_key'}), on='approval_date_key', how='left')
+# normalize approval_date_key to a clean int64 before merging
+    df['approval_date_key'] = pd.to_numeric(df['approval_date_key'], errors='coerce')
+    df['approval_date_key'] = df['approval_date_key'].fillna(-1).astype('int64')
+    df = df.merge(
+        dim_app_date_df[['date_key']].rename(columns={'date_key': 'approval_date_key'}),
+        on='approval_date_key', how='left'
+    )
 
     # item_id → item_key
     dim_item_df = dims['item_id']['df']
@@ -522,9 +595,11 @@ def transform_fact_purchase_request(raw_df, dims):
     ).drop(columns=['approver_id'])
 
     # currency_no → currency_key
+    df['currency_no'] = pd.to_numeric(df['currency_no'], errors='coerce')
+    df['currency_no'] = df['currency_no'].fillna(-1).astype('int64')
     dim_currency_df = dims['currency_no']['df']
     df = df.merge(dim_currency_df[['currency_no', 'currency_key']], on='currency_no', how='left').drop(columns=['currency_no'])
-
+    
     # customer_id → customer_key
     dim_customer_df = dims['customer_id']['df']
     df = df.merge(dim_customer_df[['customer_id', 'customer_key']], on='customer_id', how='left').drop(columns=['customer_id'])
@@ -549,14 +624,26 @@ def transform_fact_purchase_request(raw_df, dims):
         'delivering_quantity'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_return_item(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # return_date_key → validate against dim_date
+    df['return_date_key'] = pd.to_numeric(df['return_date_key'], errors='coerce')
+    df['return_date_key'] = df['return_date_key'].fillna(-1).astype('int64')
+
     dim_date_df = dims['return_date_key']['df']
-    df = df.merge(dim_date_df[['date_key']].rename(columns={'date_key': 'return_date_key'}), on='return_date_key', how='left')
+    valid_dates = set(dim_date_df['date_key'])
+
+    unresolved_count = (~df['return_date_key'].isin(valid_dates)).sum()
+    if unresolved_count > 0:
+        print(f"  WARNING: {unresolved_count} unresolved rows in return_date_key → will be replaced with -1")
+
+    df['return_date_key'] = df['return_date_key'].where(
+        df['return_date_key'].isin(valid_dates), -1
+    )
 
     # item_id → item_key
     dim_item_df = dims['item_id']['df']
@@ -566,7 +653,6 @@ def transform_fact_return_item(raw_df, dims):
     dim_emp_df = dims['employee_id']['df']
     df = df.merge(dim_emp_df[['employee_id', 'employee_key']], on='employee_id', how='left').drop(columns=['employee_id'])
 
-    # final column alignment
     fact_columns = [
         'return_date_key',
         'item_key',
@@ -578,10 +664,11 @@ def transform_fact_return_item(raw_df, dims):
         'return_amount'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_item_used(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # date_key → validate against dim_date
     dim_date_df = dims['date_key']['df']
@@ -610,10 +697,11 @@ def transform_fact_item_used(raw_df, dims):
         'unit_cost'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_issue_item(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # issue_date_key → validate against dim_date
     dim_date_df = dims['issue_date_key']['df']
@@ -642,10 +730,11 @@ def transform_fact_issue_item(raw_df, dims):
         'location_name'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_warehouse_request(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # request_date_key → validate against dim_date
     dim_date_df = dims['request_date_key']['df']
@@ -700,10 +789,11 @@ def transform_fact_warehouse_request(raw_df, dims):
         'quantity_request'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df
 
 def transform_fact_item_transfer(raw_df, dims):
-    df = raw_df.copy()
+    df = raw_df.copy().drop_duplicates()
 
     # transfer_date_key → validate against dim_date
     dim_date_df = dims['transfer_date_key']['df']
@@ -743,4 +833,5 @@ def transform_fact_item_transfer(raw_df, dims):
         'quantity_transfer'
     ]
     df = df[fact_columns]
+    df = df.drop_duplicates()
     return df

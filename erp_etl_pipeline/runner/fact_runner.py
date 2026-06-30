@@ -2,16 +2,16 @@ import pandas as pd
 from sqlalchemy import text
 
 def validate_fact(df, dims):
-    """validate all SK columns have no nulls"""
+    """validate all SK columns — replace nulls with -1 instead of dropping"""
     sk_columns = [info['sk_col'] for info in dims.values()]
 
     for col in sk_columns:
         nulls = df[col].isna().sum()
         if nulls > 0:
-            print(f"  WARNING: {nulls} unresolved rows in {col} → will be dropped")
+            print(f"  WARNING: {nulls} unresolved rows in {col} → will be replaced with -1")
+            df[col] = df[col].fillna(-1)  # ✅ replace with -1
 
-    df = df.dropna(subset=sk_columns)
-    return df
+    return df  # ✅ return all rows, nothing dropped
 
 def run_fact_etl(registry, source_conn, dw_conn):
     print("\n=== START: Fact ETL ===")
